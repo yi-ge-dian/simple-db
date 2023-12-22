@@ -18,7 +18,8 @@
 # vendor/
 
 # Go workspace file
-go.work
+# go.work
 
 .idea
 .DS_Store
+./file_manager/file_test/*
