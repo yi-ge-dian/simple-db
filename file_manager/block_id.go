@@ -35,6 +35,7 @@ func asSha256(o interface{}) string {
 
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
+
 func (b *BlockId) HashCode() string {
 	return asSha256(*b)
 }

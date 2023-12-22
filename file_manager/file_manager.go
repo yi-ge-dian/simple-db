@@ -8,11 +8,11 @@ import (
 )
 
 type FileManager struct {
-	dbDirectory string
-	blockSize   uint64
-	isNew       bool
-	openFiles   map[string]*os.File
-	mu          sync.Mutex
+	dbDirectory string              // 数据库目录
+	blockSize   uint64              // 区块大小
+	isNew       bool                // 是否是新创建的数据库目录
+	openFiles   map[string]*os.File // 打开的文件
+	mu          sync.Mutex          // 互斥锁
 }
 
 func NewFileManager(dbDirectory string, blockSize uint64) (*FileManager, error) {
@@ -31,7 +31,7 @@ func NewFileManager(dbDirectory string, blockSize uint64) (*FileManager, error) 
 			return nil, err
 		}
 	} else {
-		//目录存在，则先清楚目录下的临时文件
+		//目录存在，则先删除目录下的临时文件
 		err := filepath.Walk(dbDirectory, func(path string, info os.FileInfo, err error) error {
 			mode := info.Mode()
 			if mode.IsRegular() {
@@ -75,6 +75,7 @@ func (fm *FileManager) Read(blk *BlockId, p *Page) (int, error) {
 		return 0, err
 	}
 	defer file.Close()
+	// 把这个数据块中读取数据到缓冲区，第一个参数是缓冲区，第二个参数是偏移量
 	count, err := file.ReadAt(p.contents(), int64(blk.Number()*fm.blockSize))
 	if err != nil {
 		return 0, err
@@ -92,7 +93,7 @@ func (fm *FileManager) Write(blk *BlockId, p *Page) (int, error) {
 		return 0, err
 	}
 	defer file.Close()
-
+	// 把缓冲区中的数据写入到这个数据块, 第一个参数是数据块的内容, 第二个参数是偏移量
 	n, err := file.WriteAt(p.contents(), int64(blk.Number()*fm.blockSize))
 	if err != nil {
 		return 0, err
@@ -101,7 +102,7 @@ func (fm *FileManager) Write(blk *BlockId, p *Page) (int, error) {
 	return n, nil
 }
 
-func (fm *FileManager) size(fileName string) (uint64, error) {
+func (fm *FileManager) Size(fileName string) (uint64, error) {
 	file, err := fm.GetFile(fileName)
 	if err != nil {
 		return 0, err
@@ -111,12 +112,12 @@ func (fm *FileManager) size(fileName string) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-
+	// 返回文件大小，一共有多少个区块
 	return uint64(fs.Size()) / fm.blockSize, nil
 }
 
 func (fm *FileManager) Append(fileName string) (BlockId, error) {
-	newBlockNum, err := fm.size(fileName)
+	newBlockNum, err := fm.Size(fileName)
 	if err != nil {
 		return BlockId{}, err
 	}
